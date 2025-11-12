@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sprintly - Investor Matching</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .header {
+            background: white;
+            padding: 1rem 2rem;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2563eb;
+        }
+
+        .user-info {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .upload-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .upload-area {
+            border: 2px dashed #d0d0d0;
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .upload-area:hover {
+            border-color: #2563eb;
+            background: #f8faff;
+        }
+
+        .upload-area.dragover {
+            border-color: #2563eb;
+            background: #eef2ff;
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #2563eb;
+        }
+
+        .upload-text {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-hint {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .btn-upload {
+            background: #2563eb;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-top: 1rem;
+            transition: background 0.2s;
+        }
+
+        .btn-upload:hover {
+            background: #1d4ed8;
+        }
+
+        .btn-upload:disabled {
+            background: #cbd5e1;
+            cursor: not-allowed;
+        }
+
+        .stats-section {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: 1rem;
+            background: #f9fafb;
+            border-radius: 6px;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2563eb;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 0.25rem;
+        }
+
+        .search-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid #d0d0d0;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #2563eb;
+        }
+
+        .filters {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-select {
+            padding: 0.5rem 1rem;
+            border: 1px solid #d0d0d0;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .results-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+        }
+
+        .match-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: box-shadow 0.2s;
+        }
+
+        .match-card:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .match-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 1rem;
+            gap: 1rem;
+        }
+
+        .match-info h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .match-info .firm {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .match-score {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.25rem;
+            min-width: 80px;
+        }
+
+        .score-badge {
+            background: #dcfce7;
+            color: #166534;
+            padding: 0.4rem 1rem;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 1.25rem;
+        }
+
+        .score-badge.high {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .score-badge.medium {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .score-badge.low {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .score-label {
+            color: #4b5563;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .match-factors {
+            background: #f8fafc;
+            padding: 1rem;
+            border-radius: 6px;
+            margin: 1rem 0;
+        }
+
+        .match-factors-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+        }
+
+        .factors-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 0.75rem;
+        }
+
+        .factor-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+            background: white;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+
+        .factor-label {
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .factor-value {
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .factor-value.excellent {
+            color: #166534;
+        }
+
+        .factor-value.good {
+            color: #15803d;
+        }
+
+        .factor-value.fair {
+            color: #92400e;
+        }
+
+        .confidence-badge {
+            display: inline-block;
+            padding: 0.375rem 0.75rem;
+            border-radius: 16px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .confidence-high {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .confidence-medium {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .confidence-low {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .match-details {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            flex-wrap: wrap;
+        }
+
+        .detail-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .detail-label {
+            color: #666;
+        }
+
+        .detail-value {
+            font-weight: 500;
+        }
+
+        .match-reason {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: #374151;
+            margin-bottom: 1rem;
+            border: 1px solid #e0e0e0;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .match-reason strong {
+            color: #1f2937;
+            display: block;
+            margin-bottom: 0.75rem;
+            font-size: 0.95rem;
+        }
+
+        .match-reason ul {
+            margin-left: 0;
+            padding-left: 1.25rem;
+            margin-top: 0;
+            line-height: 1.6;
+        }
+
+        .match-reason li {
+            margin-bottom: 0.5rem;
+            color: #4b5563;
+        }
+
+        .match-reason > div {
+            color: #4b5563;
+            line-height: 1.6;
+        }
+
+        .intro-path {
+            margin-top: 1rem;
+            padding: 0.75rem 1rem;
+            background: #fafafa;
+            border-radius: 4px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .intro-path-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 0.5rem;
+        }
+
+        .path-chain {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            color: #333;
+        }
+
+        .path-node {
+            font-weight: 500;
+        }
+
+        .path-node.you {
+            font-weight: 600;
+            color: #2563eb;
+        }
+
+        .path-arrow {
+            color: #999;
+            font-size: 1rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+        }
+
+        .alert-success {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #86efac;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+
+        .alert-info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 1rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #2563eb;
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">Sprintly MVP</div>
+        <div class="user-info">Investor Matching Platform</div>
+    </div>
+
+    <div class="container">
+        <!-- Upload Section -->
+        <div class="upload-section" id="uploadSection">
+            <h2 class="section-title">Upload LinkedIn Connections</h2>
+            <div class="alert alert-info">
+                Export your LinkedIn connections as CSV and upload here to build your investor network.
+            </div>
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📤</div>
+                <div class="upload-text">Drop your LinkedIn connections CSV here</div>
+                <div class="upload-hint">or click to browse</div>
+                <input type="file" id="fileInput" class="file-input" accept=".csv">
+                <button class="btn-upload" id="uploadBtn" style="display: none;">Upload File</button>
+            </div>
+            <div id="uploadProgress" style="display: none;">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                </div>
+            </div>
+            <div id="uploadMessage"></div>
+        </div>
+
+        <!-- Stats Section -->
+        <div class="stats-section" id="statsSection" style="display: none;">
+            <h2 class="section-title">Network Overview</h2>
+            <div class="stats-grid" id="statsGrid"></div>
+        </div>
+
+        <!-- Search Section -->
+        <div class="search-section" id="searchSection" style="display: none;">
+            <input 
+                type="text" 
+                id="searchInput"
+                class="search-input" 
+                placeholder="Search investors (e.g., fintech seed MENA)"
+            >
+            <div class="filters">
+                <select class="filter-select" id="sectorFilter">
+                    <option value="">Sector: All</option>
+                    <option value="fintech">Fintech</option>
+                    <option value="healthcare">Healthcare</option>
+                    <option value="AI">AI/ML</option>
+                    <option value="SaaS">SaaS</option>
+                    <option value="ecommerce">E-commerce</option>
+                    <option value="climate">Climate</option>
+                </select>
+                <select class="filter-select" id="stageFilter">
+                    <option value="">Stage: All</option>
+                    <option value="pre-seed">Pre-seed</option>
+                    <option value="seed">Seed</option>
+                    <option value="series-a">Series A</option>
+                    <option value="series-b">Series B</option>
+                    <option value="growth">Growth</option>
+                </select>
+                <select class="filter-select" id="locationFilter">
+                    <option value="">Location: All</option>
+                    <option value="MENA">MENA</option>
+                    <option value="GCC">GCC</option>
+                    <option value="Dubai">Dubai</option>
+                    <option value="Riyadh">Riyadh</option>
+                    <option value="Cairo">Cairo</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="results-section" id="resultsSection" style="display: none;">
+            <h2 class="section-title">Top Investor Matches</h2>
+            <div id="resultsContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        
+        // DOM elements
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const uploadMessage = document.getElementById('uploadMessage');
+        const uploadProgress = document.getElementById('uploadProgress');
+        const progressFill = document.getElementById('progressFill');
+        const statsSection = document.getElementById('statsSection');
+        const statsGrid = document.getElementById('statsGrid');
+        const searchSection = document.getElementById('searchSection');
+        const searchInput = document.getElementById('searchInput');
+        const resultsSection = document.getElementById('resultsSection');
+        const resultsContainer = document.getElementById('resultsContainer');
+
+        // Upload area click
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.name.endsWith('.csv')) {
+                fileInput.files = e.dataTransfer.files;
+                uploadBtn.style.display = 'block';
+                uploadBtn.textContent = `Upload: ${file.name}`;
+            }
+        });
+
+        // File selected
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                uploadBtn.style.display = 'block';
+                uploadBtn.textContent = `Upload: ${fileInput.files[0].name}`;
+            }
+        });
+
+        // Upload button click
+        uploadBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = 'Uploading...';
+            uploadProgress.style.display = 'block';
+            uploadMessage.innerHTML = '';
+
+            try {
+                // Simulate progress
+                let progress = 0;
+                const progressInterval = setInterval(() => {
+                    progress += 10;
+                    if (progress <= 90) {
+                        progressFill.style.width = progress + '%';
+                    }
+                }, 200);
+
+                const response = await fetch(`${API_BASE}/upload`, {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                clearInterval(progressInterval);
+                progressFill.style.width = '100%';
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Upload failed');
+                }
+
+                const data = await response.json();
+                
+                uploadMessage.innerHTML = `
+                    <div class="alert alert-success">
+                        ✓ Successfully processed ${data.stats.created} connections!
+                        ${data.stats.skipped > 0 ? `(${data.stats.skipped} skipped, ${data.stats.errors} errors)` : ''}
+                    </div>
+                `;
+
+                // Load stats and show search
+                await loadStats();
+                searchSection.style.display = 'block';
+                resultsSection.style.display = 'block';
+                loadDefaultMatches();
+
+            } catch (error) {
+                uploadMessage.innerHTML = `
+                    <div class="alert alert-error">
+                        ✗ ${error.message}
+                    </div>
+                `;
+            } finally {
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Upload Another File';
+                setTimeout(() => {
+                    uploadProgress.style.display = 'none';
+                    progressFill.style.width = '0%';
+                }, 1000);
+            }
+        });
+
+        // Load stats
+        async function loadStats() {
+            try {
+                const response = await fetch(`${API_BASE}/stats`);
+                const stats = await response.json();
+
+                statsGrid.innerHTML = `
+                    <div class="stat-card">
+                        <div class="stat-value">${stats.total_entities}</div>
+                        <div class="stat-label">Total Connections</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${stats.investors}</div>
+                        <div class="stat-label">Investors</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${stats.founders}</div>
+                        <div class="stat-label">Founders</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${stats.enablers}</div>
+                        <div class="stat-label">Enablers</div>
+                    </div>
+                `;
+
+                statsSection.style.display = 'block';
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+            }
+        }
+
+        // Load default matches
+        async function loadDefaultMatches() {
+            resultsContainer.innerHTML = '<div class="loading">Loading matches...</div>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/investors?limit=5`);
+                const data = await response.json();
+                renderMatches(data.investors);
+            } catch (error) {
+                resultsContainer.innerHTML = `<div class="empty-state">Failed to load matches</div>`;
+            }
+        }
+
+        // Search functionality
+        let searchTimeout;
+        searchInput.addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(performSearch, 500);
+        });
+
+        document.getElementById('sectorFilter').addEventListener('change', performSearch);
+        document.getElementById('stageFilter').addEventListener('change', performSearch);
+        document.getElementById('locationFilter').addEventListener('change', performSearch);
+
+        async function performSearch() {
+            const query = searchInput.value.trim();
+            const sector = document.getElementById('sectorFilter').value;
+            const stage = document.getElementById('stageFilter').value;
+            const location = document.getElementById('locationFilter').value;
+
+            if (!query) {
+                loadDefaultMatches();
+                return;
+            }
+
+            resultsContainer.innerHTML = '<div class="loading">Searching...</div>';
+
+            try {
+                const params = new URLSearchParams({
+                    q: query,
+                    limit: 10,
+                });
+                if (sector) params.append('sector', sector);
+                if (stage) params.append('stage', stage);
+                if (location) params.append('location', location);
+
+                const response = await fetch(`${API_BASE}/search?${params}`);
+                const data = await response.json();
+                
+                renderMatches(data.matches, true);
+            } catch (error) {
+                resultsContainer.innerHTML = `<div class="empty-state">Search failed. Please try again.</div>`;
+            }
+        }
+
+        function getScoreBadgeClass(score) {
+            if (score >= 85) return 'high';
+            if (score >= 70) return 'medium';
+            return 'low';
+        }
+
+        function getFactorClass(value) {
+            if (value >= 90) return 'excellent';
+            if (value >= 75) return 'good';
+            return 'fair';
+        }
+
+        function getConfidenceBadge(hops) {
+            if (hops === 0 || hops === 1) {
+                return '<span class="confidence-badge confidence-high">High Confidence</span>';
+            } else if (hops === 2) {
+                return '<span class="confidence-badge confidence-medium">Medium Confidence</span>';
+            } else {
+                return '<span class="confidence-badge confidence-low">Low Confidence</span>';
+            }
+        }
+
+        function getMatchFactors(match) {
+            // Use real match factors from backend (calculated in Python)
+            return match.match_factors || {};
+        }
+
+        function renderMatches(matches, includeScores = false) {
+            if (!matches || matches.length === 0) {
+                resultsContainer.innerHTML = '<div class="empty-state">No matches found</div>';
+                return;
+            }
+
+            resultsContainer.innerHTML = matches.map((match, index) => {
+                const checkSize = match.check_size_min && match.check_size_max
+                    ? `$${(match.check_size_min / 1000).toFixed(0)}K - $${(match.check_size_max / 1000000).toFixed(1)}M`
+                    : 'Not specified';
+
+                const sectors = match.sector_focus?.join(', ') || 'N/A';
+                const stages = match.stage_focus?.join(', ') || 'N/A';
+
+                // Use real match score from backend (calculated in Python)
+                const matchScore = match.score || 0;
+
+                const scoreBadgeClass = getScoreBadgeClass(matchScore);
+                const scoreLabel = matchScore >= 85 ? 'Excellent Match' : matchScore >= 70 ? 'Good Match' : 'Fair Match';
+
+                // Get match factors from backend (calculated in Python)
+                const factors = getMatchFactors(match);
+
+                // Calculate intro path hops
+                const introHops = match.intro_path ? match.intro_path.length - 1 : 1;
+
+                return `
+                    <div class="match-card">
+                        <div class="match-header">
+                            <div class="match-info">
+                                <h3>${match.name}</h3>
+                                <p class="firm">${match.company || 'Independent'}</p>
+                            </div>
+                            <div class="match-score">
+                                <div class="score-badge ${scoreBadgeClass}">${matchScore}%</div>
+                                <div class="score-label">${scoreLabel}</div>
+                            </div>
+                        </div>
+
+                        <div class="match-details">
+                            <div class="detail-item">
+                                <span class="detail-label">Sectors:</span>
+                                <span class="detail-value">${sectors}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Stages:</span>
+                                <span class="detail-value">${stages}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Check Size:</span>
+                                <span class="detail-value">${checkSize}</span>
+                            </div>
+                            ${match.location ? `
+                            <div class="detail-item">
+                                <span class="detail-label">Location:</span>
+                                <span class="detail-value">${match.location}</span>
+                            </div>
+                            ` : ''}
+                        </div>
+
+                        ${match.reasons && match.reasons.length > 0 ? `
+                        <div class="match-reason">
+                            <strong>Why This Match?</strong>
+                            <ul>
+                                ${match.reasons.map(r => `<li>${r}</li>`).join('')}
+                            </ul>
+                        </div>
+                        ` : ''}
+
+                        <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
+                            ${match.linkedin_url ? `
+                            <a href="${match.linkedin_url}" target="_blank" style="
+                                padding: 0.5rem 1rem;
+                                background: #2563eb;
+                                color: white;
+                                text-decoration: none;
+                                border-radius: 6px;
+                                font-size: 0.9rem;
+                                display: inline-block;
+                                transition: background 0.2s;
+                            " onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">
+                                View Profile
+                            </a>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Check if data already exists on load
+        window.addEventListener('load', async () => {
+            try {
+                const response = await fetch(`${API_BASE}/stats`);
+                const stats = await response.json();
+                if (stats.total_entities > 0) {
+                    await loadStats();
+                    searchSection.style.display = 'block';
+                    resultsSection.style.display = 'block';
+                    loadDefaultMatches();
+                }
+            } catch (error) {
+                // No data yet, show upload section
+                console.log('Backend not available or no data yet');
+            }
+        });
+    </script>
+</body>
+</html>
