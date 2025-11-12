@@ -4,26 +4,7 @@ Founder-investor matching platform powered by AI and graph database.
 
 ## Project Structure
 
-```
-sprintly-mvp/
-├── backend/              # Backend application
-│   ├── app/             # Main application code
-│   │   ├── prompts/    # AI prompts for enrichment
-│   │   ├── config.py   # Configuration settings
-│   │   ├── models.py   # Data models
-│   │   ├── main.py     # FastAPI application
-│   │   └── ...         # Other modules
-│   └── notebooks/       # Jupyter notebooks for testing
-├── frontend/            # Frontend application
-│   ├── index.html      # Main HTML file
-│   └── serve.py        # Development server
-├── data/                # Data files (gitignored)
-├── logs/                # Log files (gitignored)
-├── tests/               # Test files
-├── docs/                # Documentation
-├── scripts/             # Utility scripts
-└── requirements.txt     # Python dependencies
-```
+
 
 ## Setup
 
