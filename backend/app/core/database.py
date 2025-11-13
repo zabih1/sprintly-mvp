@@ -8,7 +8,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, sessionmaker
 
-from .config import settings
+from app.core.config import settings
 
 # Create SQLAlchemy engine
 engine = create_engine(

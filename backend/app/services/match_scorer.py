@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional, Tuple
 
-from .models import Entity
+from app.core.models import Entity
 
 
 def calculate_sector_match(
@@ -13,38 +13,39 @@ def calculate_sector_match(
 ) -> Tuple[float, bool]:
     """
     Calculate sector match score (0-100).
-    
+
     Returns (score, has_match).
     """
-    if not entity.sector_focus or not entity.sector_focus:
+    if not entity.sector_focus:
         return 0.0, False
     
     score = 0.0
     has_match = False
-    
+    query_lower = query.lower()
+
     # Check for exact matches in sectors
     for sector in entity.sector_focus:
         sector_lower = sector.lower()
-        
+
         # Exact sector in query
-        if sector_lower in query.lower():
+        if sector_lower in query_lower:
             score = 100.0
             has_match = True
             break
-        
-        # Token matches
+
+        # Partial matches (sector contains query tokens)
         sector_tokens = set(sector_lower.split())
         matching_tokens = query_tokens.intersection(sector_tokens)
-        
+
         if matching_tokens:
             # Calculate score based on match ratio
             match_ratio = len(matching_tokens) / len(sector_tokens)
             token_score = 70 + (match_ratio * 30)  # 70-100 range
             score = max(score, token_score)
             has_match = True
-    
+
     # Base score if has sectors but no query match
-    if not has_match and entity.sector_focus:
+    if not has_match:
         score = 60.0
         has_match = True
     
@@ -58,35 +59,34 @@ def calculate_stage_match(
 ) -> Tuple[float, bool]:
     """
     Calculate stage alignment score (0-100).
-    
+
     Returns (score, has_match).
     """
-    if not entity.stage_focus or not entity.stage_focus:
+    if not entity.stage_focus:
         return 0.0, False
     
     score = 0.0
     has_match = False
-    
-    # Common stage keywords
+    query_lower = query.lower()
+
+    # Common stage keywords for synonym matching
     stage_keywords = {
         'pre-seed': ['pre-seed', 'preseed', 'pre seed'],
         'seed': ['seed'],
-        'series-a': ['series a', 'series-a', 'seriesa', 'series a'],
-        'series-b': ['series b', 'series-b', 'seriesb', 'series b'],
+        'series-a': ['series a', 'series-a', 'seriesa'],
+        'series-b': ['series b', 'series-b', 'seriesb'],
         'growth': ['growth', 'late stage', 'late-stage']
     }
-    
-    query_lower = query.lower()
-    
+
     for stage in entity.stage_focus:
         stage_lower = stage.lower()
-        
+
         # Exact match
         if stage_lower in query_lower or query_lower in stage_lower:
             score = 100.0
             has_match = True
             break
-        
+
         # Check synonyms
         for stage_type, keywords in stage_keywords.items():
             if any(kw in stage_lower for kw in keywords):
@@ -94,20 +94,20 @@ def calculate_stage_match(
                     score = 95.0
                     has_match = True
                     break
-        
+
         if has_match:
             break
-        
+
         # Token matches
         stage_tokens = set(stage_lower.split())
         matching_tokens = query_tokens.intersection(stage_tokens)
-        
+
         if matching_tokens:
             score = max(score, 75.0)
             has_match = True
-    
+
     # Base score if has stages but no query match
-    if not has_match and entity.stage_focus:
+    if not has_match:
         score = 65.0
         has_match = True
     
@@ -153,21 +153,21 @@ def calculate_geography_match(
         for region, keywords in geo_keywords.items():
             location_match = any(kw in location_lower for kw in keywords)
             query_match = any(kw in query_lower for kw in keywords)
-            
+
             if location_match and query_match:
                 score = 95.0
                 has_match = True
                 break
-        
+
         # Token matches
         if not has_match:
             location_tokens = set(location_lower.split())
             matching_tokens = query_tokens.intersection(location_tokens)
-            
+
             if matching_tokens:
                 score = 80.0
                 has_match = True
-    
+
     # Base score if has location but no query match
     if not has_match:
         score = 70.0
@@ -244,10 +244,8 @@ def calculate_overall_match_score(
     """
     Calculate overall match score (0-100).
     
-    Combines:
-    - Vector similarity score (base)
-    - Individual factor scores (weighted per requirements)
-    
+    Combines vector similarity (40%) with factor-based scoring (60%).
+
     Requirements-aligned weights (Section 6.5):
     - Sector Match: 35%
     - Stage Alignment: 20%
@@ -262,6 +260,7 @@ def calculate_overall_match_score(
     # Get factor scores
     factors = calculate_match_factors(entity, query)
     
+    # If no factors match, return similarity score only
     if not factors:
         return round(base_score, 1)
     
@@ -271,10 +270,11 @@ def calculate_overall_match_score(
         'stage': 0.20,           # 20% weight (Stage Alignment)
         'geography': 0.15,       # 15% weight (Geography Fit)
         'checkSize': 0.10,       # 10% weight (Check Size)
-        'traction': 0.10,        # 10% weight (Traction Signals - base score for MVP)
-        'graph_proximity': 0.10  # 10% weight (Graph Proximity - base score for MVP)
+        'traction': 0.10,        # 10% weight (Traction Signals)
+        'graph_proximity': 0.10  # 10% weight (Graph Proximity)
     }
-    # Add default scores for traction and graph proximity (MVP baseline)
+    
+    # Add default scores for factors not present
     if 'traction' not in factors:
         factors['traction'] = 70.0  # Base traction score for MVP
     if 'graph_proximity' not in factors:
@@ -289,12 +289,13 @@ def calculate_overall_match_score(
         weighted_factor_score += score * weight
         total_weight += weight
     
+    # Normalize factor score
     if total_weight > 0:
         factor_score = weighted_factor_score / total_weight
     else:
-        factor_score = 0.0
+        factor_score = 70.0  # Default factor score
     
-    # Combine base similarity (40%) + factors (60%)
+    # Combine similarity (40%) + factors (60%)
     final_score = (base_score * 0.4) + (factor_score * 0.6)
     
     # Ensure score is in valid range

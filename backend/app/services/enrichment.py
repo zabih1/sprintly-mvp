@@ -6,8 +6,8 @@ from typing import Dict, List, Optional
 
 import openai
 
-from .config import settings
-from .prompts import ENRICHMENT_PROMPT, SYSTEM_PROMPT
+from app.core.config import settings
+from app.services.prompts import ENRICHMENT_PROMPT, SYSTEM_PROMPT
 
 # Initialize OpenAI client
 openai.api_key = settings.openai_api_key

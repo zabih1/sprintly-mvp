@@ -9,9 +9,9 @@ from typing import BinaryIO, Dict, List
 import pandas as pd
 from sqlalchemy.orm import Session
 
-from .enrichment import create_embedding_text, enrich_entity, generate_embedding
-from .models import Connection, Entity
-from .neo4j_client import neo4j_client
+from app.services.enrichment import create_embedding_text, enrich_entity, generate_embedding
+from app.core.models import Connection, Entity
+from app.services.neo4j_client import neo4j_client
 
 
 def parse_linkedin_csv(file_content: bytes) -> pd.DataFrame:

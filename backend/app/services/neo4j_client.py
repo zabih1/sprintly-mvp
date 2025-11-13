@@ -5,7 +5,7 @@ from typing import Dict, List, Optional
 
 from neo4j import GraphDatabase, Driver
 
-from .config import settings
+from app.core.config import settings
 
 
 class Neo4jClient:

@@ -5,8 +5,8 @@ from typing import Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
-from .models import Entity
-from .neo4j_client import neo4j_client
+from app.core.models import Entity
+from app.services.neo4j_client import neo4j_client
 
 
 def get_intro_path(

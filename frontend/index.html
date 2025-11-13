@@ -18,23 +18,25 @@
         }
 
         .header {
-            background: white;
-            padding: 1rem 2rem;
-            border-bottom: 1px solid #e0e0e0;
+            background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
+            padding: 1.25rem 2rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
         .logo {
-            font-size: 1.5rem;
+            font-size: 1.75rem;
             font-weight: 700;
-            color: #2563eb;
+            color: white;
+            letter-spacing: -0.5px;
         }
 
         .user-info {
             font-size: 0.9rem;
-            color: #666;
+            color: rgba(255, 255, 255, 0.95);
+            font-weight: 500;
         }
 
         .container {
@@ -109,6 +111,29 @@
         .btn-upload:disabled {
             background: #cbd5e1;
             cursor: not-allowed;
+        }
+
+        .btn-danger {
+            background: #dc2626;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: background 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-danger:hover {
+            background: #b91c1c;
+        }
+
+        .btn-danger:active {
+            background: #991b1b;
         }
 
         .stats-section {
@@ -486,12 +511,259 @@
             background: #2563eb;
             transition: width 0.3s;
         }
+
+        /* Email Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 2rem;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            max-width: 900px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 10;
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #666;
+            cursor: pointer;
+            padding: 0.25rem 0.5rem;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: #000;
+        }
+
+        .modal-body {
+            padding: 2rem;
+        }
+
+        .email-info {
+            background: #f8fafc;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+        }
+
+        .email-info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .email-info-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .email-info-label {
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .email-info-value {
+            color: #1e293b;
+            font-weight: 600;
+        }
+
+        .email-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .email-tab {
+            padding: 0.75rem 1.5rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: #6b7280;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s;
+        }
+
+        .email-tab:hover {
+            color: #2563eb;
+        }
+
+        .email-tab.active {
+            color: #2563eb;
+            border-bottom-color: #2563eb;
+        }
+
+        .email-content {
+            display: none;
+        }
+
+        .email-content.active {
+            display: block;
+        }
+
+        .email-draft {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 1.5rem;
+            font-size: 0.95rem;
+            line-height: 1.7;
+            color: #374151;
+            white-space: pre-wrap;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .email-actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .btn-copy {
+            padding: 0.5rem 1rem;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+        }
+
+        .btn-copy:hover {
+            background: #1d4ed8;
+        }
+
+        .btn-copy.copied {
+            background: #10b981;
+        }
+
+        .btn-secondary {
+            padding: 0.5rem 1rem;
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background: #e5e7eb;
+        }
+
+        .btn-email {
+            padding: 0.5rem 1rem;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            text-decoration: none;
+            display: inline-block;
+            transition: background 0.2s;
+        }
+
+        .btn-email:hover {
+            background: #059669;
+        }
+
+        .email-loading {
+            text-align: center;
+            padding: 3rem;
+            color: #6b7280;
+        }
+
+        .email-loading-spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e5e7eb;
+            border-top-color: #2563eb;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .email-error {
+            background: #fee2e2;
+            border: 1px solid #fca5a5;
+            color: #991b1b;
+            padding: 1rem;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .btn-generate-email {
+            padding: 0.5rem 1rem;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            text-decoration: none;
+            display: inline-block;
+            transition: background 0.2s;
+        }
+
+        .btn-generate-email:hover {
+            background: #059669;
+        }
     </style>
 </head>
 <body>
     <div class="header">
-        <div class="logo">Sprintly MVP</div>
-        <div class="user-info">Investor Matching Platform</div>
+        <div class="logo">Sprintly</div>
+        <div class="user-info">AI-Powered Investor Matching</div>
     </div>
 
     <div class="container">
@@ -499,7 +771,7 @@
         <div class="upload-section" id="uploadSection">
             <h2 class="section-title">Upload LinkedIn Connections</h2>
             <div class="alert alert-info">
-                Export your LinkedIn connections as CSV and upload here to build your investor network.
+                Export your LinkedIn connections as CSV and upload here. Fast processing with AI enrichment and embeddings (10x faster than standard upload).
             </div>
             <div class="upload-area" id="uploadArea">
                 <div class="upload-icon">📤</div>
@@ -520,6 +792,19 @@
         <div class="stats-section" id="statsSection" style="display: none;">
             <h2 class="section-title">Network Overview</h2>
             <div class="stats-grid" id="statsGrid"></div>
+            
+            <!-- Danger Zone -->
+            <div class="danger-zone" style="margin-top: 2rem; padding: 1.5rem; border: 2px solid #ef4444; border-radius: 8px; background: #fef2f2;">
+                <h3 style="color: #dc2626; margin: 0 0 0.5rem 0; display: flex; align-items: center; gap: 0.5rem;">
+                    ⚠️ Danger Zone
+                </h3>
+                <p style="color: #991b1b; margin: 0 0 1rem 0; font-size: 0.9rem;">
+                    Permanently delete all data from the database and graph. This action cannot be undone!
+                </p>
+                <button onclick="confirmClearAllData()" class="btn-danger">
+                    🗑️ Clear All Data
+                </button>
+            </div>
         </div>
 
         <!-- Search Section -->
@@ -563,6 +848,22 @@
         <div class="results-section" id="resultsSection" style="display: none;">
             <h2 class="section-title">Top Investor Matches</h2>
             <div id="resultsContainer"></div>
+        </div>
+    </div>
+
+    <!-- Email Generation Modal -->
+    <div id="emailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Introduction Email Drafts</h2>
+                <button class="modal-close" onclick="closeEmailModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="emailModalBody">
+                <div class="email-loading">
+                    <div class="email-loading-spinner"></div>
+                    <p>Generating personalized introduction emails...</p>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -639,7 +940,7 @@
                     }
                 }, 200);
 
-                const response = await fetch(`${API_BASE}/upload`, {
+                const response = await fetch(`${API_BASE}/upload-fast?skip_enrichment=false&max_workers=10`, {
                     method: 'POST',
                     body: formData,
                 });
@@ -656,7 +957,7 @@
                 
                 uploadMessage.innerHTML = `
                     <div class="alert alert-success">
-                        ✓ Successfully processed ${data.stats.created} connections!
+                        ✓ Successfully processed ${data.stats.created} connections using fast upload!
                         ${data.stats.skipped > 0 ? `(${data.stats.skipped} skipped, ${data.stats.errors} errors)` : ''}
                     </div>
                 `;
@@ -866,6 +1167,9 @@
                         ` : ''}
 
                         <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
+                            <button class="btn-generate-email" onclick="generateIntroEmail(${match.id}, '${match.name}', '${match.company || 'Independent'}', ${matchScore})">
+                                📧 Generate Intro Email
+                            </button>
                             ${match.linkedin_url ? `
                             <a href="${match.linkedin_url}" target="_blank" style="
                                 padding: 0.5rem 1rem;
@@ -902,6 +1206,319 @@
                 console.log('Backend not available or no data yet');
             }
         });
+
+        // Email Generation Functions
+        async function generateIntroEmail(investorId, investorName, investorCompany, matchScore) {
+            const modal = document.getElementById('emailModal');
+            const modalBody = document.getElementById('emailModalBody');
+            
+            // Show modal with loading state
+            modal.classList.add('active');
+            modalBody.innerHTML = `
+                <div class="email-loading">
+                    <div class="email-loading-spinner"></div>
+                    <p>Generating personalized introduction emails...</p>
+                </div>
+            `;
+
+            try {
+                // First, get the founder entity (the owner/first entity)
+                const entitiesResponse = await fetch(`${API_BASE}/entities?limit=1`);
+                if (!entitiesResponse.ok) {
+                    throw new Error('Could not find your profile. Please upload your LinkedIn connections first.');
+                }
+                
+                const entitiesData = await entitiesResponse.json();
+                const entities = entitiesData.entities || entitiesData;
+                
+                if (!entities || entities.length === 0) {
+                    throw new Error('No entities found. Please upload your LinkedIn connections first.');
+                }
+                
+                const founderId = entities[0].id;
+
+                // Now generate the email
+                const response = await fetch(`${API_BASE}/generate-intro-email/${investorId}?source_id=${founderId}&tones=formal,casual,enthusiastic`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.detail || 'Failed to generate emails');
+                }
+
+                const data = await response.json();
+                renderEmailDrafts(data, investorName, investorCompany);
+            } catch (error) {
+                modalBody.innerHTML = `
+                    <div class="email-error">
+                        <p><strong>Failed to generate emails</strong></p>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        function renderEmailDrafts(data, investorName, investorCompany) {
+            const modalBody = document.getElementById('emailModalBody');
+            
+            const emails = data.emails || {};
+            const tones = Object.keys(emails);
+            
+            if (tones.length === 0) {
+                modalBody.innerHTML = `
+                    <div class="email-error">
+                        <p>No email drafts were generated.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Helper function to extract text from email (handle both string and object)
+            const getEmailText = (emailData) => {
+                if (typeof emailData === 'string') {
+                    return emailData;
+                } else if (typeof emailData === 'object' && emailData !== null) {
+                    // Try common properties
+                    return emailData.text || emailData.content || emailData.body || JSON.stringify(emailData, null, 2);
+                }
+                return String(emailData);
+            };
+
+            const emailTabs = tones.map((tone, index) => `
+                <button class="email-tab ${index === 0 ? 'active' : ''}" onclick="switchEmailTab('${tone}')">
+                    ${tone.charAt(0).toUpperCase() + tone.slice(1)}
+                </button>
+            `).join('');
+
+            const emailContents = tones.map((tone, index) => {
+                const emailText = getEmailText(emails[tone]);
+                // Escape any backticks and special characters for HTML
+                const safeEmailText = emailText.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                return `
+                    <div class="email-content ${index === 0 ? 'active' : ''}" id="email-${tone}">
+                        <div class="email-draft">${safeEmailText}</div>
+                        <div class="email-actions">
+                            <button class="btn-copy" onclick="copyEmail('${tone}')">
+                                📋 Copy to Clipboard
+                            </button>
+                            <button class="btn-secondary" onclick="editEmail('${tone}')">
+                                ✏️ Edit
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            modalBody.innerHTML = `
+                <div class="email-info">
+                    <div class="email-info-row">
+                        <span class="email-info-label">To:</span>
+                        <span class="email-info-value">${data.target_investor}</span>
+                    </div>
+                    <div class="email-info-row">
+                        <span class="email-info-label">Intro via:</span>
+                        <span class="email-info-value">${data.intro_via}</span>
+                    </div>
+                    <div class="email-info-row">
+                        <span class="email-info-label">Match Score:</span>
+                        <span class="email-info-value">${data.match_score.toFixed(1)}%</span>
+                    </div>
+                </div>
+                
+                <div class="email-tabs">
+                    ${emailTabs}
+                </div>
+                
+                ${emailContents}
+            `;
+        }
+
+        function switchEmailTab(tone) {
+            // Update tab buttons
+            document.querySelectorAll('.email-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Update content
+            document.querySelectorAll('.email-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(`email-${tone}`).classList.add('active');
+        }
+
+        async function copyEmail(tone) {
+            const emailContent = document.querySelector(`#email-${tone} .email-draft`).textContent;
+            
+            try {
+                await navigator.clipboard.writeText(emailContent);
+                
+                // Update button to show success
+                const btn = event.target;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '✓ Copied!';
+                btn.classList.add('copied');
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.classList.remove('copied');
+                }, 2000);
+            } catch (error) {
+                alert('Failed to copy to clipboard. Please select and copy manually.');
+            }
+        }
+
+        function editEmail(tone) {
+            const emailDraftDiv = document.querySelector(`#email-${tone} .email-draft`);
+            const currentContent = emailDraftDiv.textContent;
+            
+            // Convert to textarea for editing
+            emailDraftDiv.innerHTML = `
+                <textarea style="
+                    width: 100%;
+                    min-height: 300px;
+                    padding: 1rem;
+                    border: 1px solid #d1d5db;
+                    border-radius: 6px;
+                    font-size: 0.95rem;
+                    line-height: 1.7;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    resize: vertical;
+                ">${currentContent}</textarea>
+            `;
+
+            // Update button to "Save"
+            const actionsDiv = document.querySelector(`#email-${tone} .email-actions`);
+            actionsDiv.innerHTML = `
+                <button class="btn-copy" onclick="saveEmail('${tone}')">
+                    💾 Save Changes
+                </button>
+                <button class="btn-secondary" onclick="cancelEdit('${tone}', \`${currentContent.replace(/`/g, '\\`')}\`)">
+                    ✖ Cancel
+                </button>
+            `;
+        }
+
+        function saveEmail(tone) {
+            const textarea = document.querySelector(`#email-${tone} textarea`);
+            const newContent = textarea.value;
+            
+            const emailDraftDiv = document.querySelector(`#email-${tone} .email-draft`);
+            emailDraftDiv.textContent = newContent;
+
+            // Restore buttons
+            const actionsDiv = document.querySelector(`#email-${tone} .email-actions`);
+            actionsDiv.innerHTML = `
+                <button class="btn-copy" onclick="copyEmail('${tone}')">
+                    📋 Copy to Clipboard
+                </button>
+                <button class="btn-secondary" onclick="editEmail('${tone}')">
+                    ✏️ Edit
+                </button>
+            `;
+        }
+
+        function cancelEdit(tone, originalContent) {
+            const emailDraftDiv = document.querySelector(`#email-${tone} .email-draft`);
+            emailDraftDiv.textContent = originalContent;
+
+            // Restore buttons
+            const actionsDiv = document.querySelector(`#email-${tone} .email-actions`);
+            actionsDiv.innerHTML = `
+                <button class="btn-copy" onclick="copyEmail('${tone}')">
+                    📋 Copy to Clipboard
+                </button>
+                <button class="btn-secondary" onclick="editEmail('${tone}')">
+                    ✏️ Edit
+                </button>
+            `;
+        }
+
+        function closeEmailModal() {
+            const modal = document.getElementById('emailModal');
+            modal.classList.remove('active');
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('emailModal').addEventListener('click', (e) => {
+            if (e.target.id === 'emailModal') {
+                closeEmailModal();
+            }
+        });
+
+        // Clear All Data function - instant deletion
+        async function confirmClearAllData() {
+            // Show loading message immediately
+            statsSection.innerHTML = `
+                <div style="text-align: center; padding: 3rem;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">🗑️</div>
+                    <h3 style="color: #dc2626; margin-bottom: 0.5rem;">Deleting all data...</h3>
+                    <p style="color: #666;">This may take a moment...</p>
+                </div>
+            `;
+
+            try {
+                const response = await fetch(`${API_BASE}/clear-all-data`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to clear data: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+
+                // Show success message
+                statsSection.innerHTML = `
+                    <div style="text-align: center; padding: 3rem;">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">✅</div>
+                        <h3 style="color: #059669; margin-bottom: 0.5rem;">All data deleted successfully!</h3>
+                        <p style="color: #666; margin-bottom: 1rem;">
+                            Deleted ${result.deleted.entities} entities, 
+                            ${result.deleted.connections} connections, 
+                            and ${result.deleted.matches} matches
+                        </p>
+                        <button onclick="location.reload()" 
+                                style="background: #2563eb; color: white; padding: 0.75rem 1.5rem; 
+                                       border: none; border-radius: 6px; cursor: pointer; font-size: 1rem;">
+                            🔄 Reload Page
+                        </button>
+                    </div>
+                `;
+
+                // Hide other sections
+                searchSection.style.display = 'none';
+                resultsSection.style.display = 'none';
+
+                console.log('Data cleared:', result);
+
+            } catch (error) {
+                console.error('Error clearing data:', error);
+                
+                // Show error message
+                statsSection.innerHTML = `
+                    <div style="text-align: center; padding: 3rem;">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">❌</div>
+                        <h3 style="color: #dc2626; margin-bottom: 0.5rem;">Failed to delete data</h3>
+                        <p style="color: #666; margin-bottom: 1rem;">
+                            ${error.message}
+                        </p>
+                        <button onclick="location.reload()" 
+                                style="background: #2563eb; color: white; padding: 0.75rem 1.5rem; 
+                                       border: none; border-radius: 6px; cursor: pointer; font-size: 1rem;">
+                            🔄 Reload Page
+                        </button>
+                    </div>
+                `;
+            }
+        }
     </script>
 </body>
 </html>

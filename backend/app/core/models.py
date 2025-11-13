@@ -8,7 +8,7 @@ from pgvector.sqlalchemy import Vector
 from sqlalchemy import Column, DateTime, Float, Integer, String, Text, JSON, Index
 from sqlalchemy.dialects.postgresql import ARRAY
 
-from .database import Base
+from app.core.database import Base
 
 
 class Entity(Base):

@@ -6,9 +6,9 @@ from typing import Dict, List, Optional, Tuple
 from sqlalchemy import func, text
 from sqlalchemy.orm import Session
 
-from .enrichment import generate_embedding
-from .match_scorer import rank_matches
-from .models import Entity
+from app.services.enrichment import generate_embedding
+from app.services.match_scorer import rank_matches
+from app.core.models import Entity
 
 
 def search_similar_entities(
