@@ -1,23 +1,23 @@
-fastapi==0.109.0
-uvicorn[standard]==0.27.0
-python-multipart==0.0.6
-pydantic==2.5.3
-pydantic-settings==2.1.0
-python-dotenv==1.0.0
+fastapi
+uvicorn[standard]
+python-multipart
+pydantic
+pydantic-settings
+python-dotenv
 
 # Database
-psycopg2-binary==2.9.9
-sqlalchemy==2.0.25
-alembic==1.13.1
+psycopg2-binary
+sqlalchemy
+alembic
 
 # Neo4j
-neo4j==5.16.0
+neo4j
 
 # OpenAI
-openai==1.10.0
+openai
 
 # Data processing
-pandas==2.1.4
-numpy==1.26.3
+pandas
+numpy
 
-python-dateutil==2.8.2
+python-dateutil
