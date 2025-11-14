@@ -6,9 +6,12 @@ from typing import Dict, List, Optional, Tuple
 from sqlalchemy import func, text
 from sqlalchemy.orm import Session
 
+from app.core.logging_config import get_logger
 from app.services.enrichment import generate_embedding
 from app.services.match_scorer import rank_matches
 from app.core.models import Entity
+
+logger = get_logger(__name__)
 
 
 def search_similar_entities(
@@ -25,9 +28,12 @@ def search_similar_entities(
     
     Returns list of (Entity, distance) tuples sorted by similarity.
     """
+    logger.info(f"Vector search | Query: '{query}' | Role: {role_filter} | Limit: {limit}")
+    
     # Generate embedding for query
     query_embedding = generate_embedding(query)
     if not query_embedding:
+        logger.warning("Failed to generate query embedding - returning empty results")
         return []
 
     # Build base query
@@ -59,7 +65,8 @@ def search_similar_entities(
 
     # Order by similarity and limit
     results = query_obj.order_by(text("distance ASC")).limit(limit).all()
-
+    
+    logger.info(f"Vector search complete | Query: '{query}' | Results: {len(results)}")
     return [(entity, distance) for entity, distance in results]
 
 
@@ -115,6 +122,8 @@ def hybrid_search(
     
     Returns list of dicts with comprehensive match scoring and factors.
     """
+    logger.info(f"Hybrid search | Query: '{query}' | Filters: role={role_filter}, sector={sector_filter}, stage={stage_filter}, location={location_filter}")
+    
     # Get vector similarity results
     vector_results = search_similar_entities(
         query=query,
@@ -125,6 +134,8 @@ def hybrid_search(
         location_filter=location_filter,
         limit=limit * 2,  # Get more candidates
     )
+    
+    logger.debug(f"Vector search returned {len(vector_results)} candidates")
 
     # Build initial results with reasons
     initial_results = []
@@ -162,6 +173,7 @@ def hybrid_search(
 
     # Use match scorer to calculate comprehensive scores and rank
     ranked_results = rank_matches(initial_results, query)
-
+    
+    logger.info(f"Hybrid search complete | Query: '{query}' | Final results: {len(ranked_results[:limit])}")
     return ranked_results[:limit]
 

@@ -7,6 +7,7 @@ from typing import Dict, List, Optional
 import openai
 
 from app.core.config import settings
+from app.core.logging_config import get_logger, log_api_call, log_error_with_context
 from app.core.models import Entity
 from app.services.prompts.email_prompts import (
     CASUAL_EMAIL_PROMPT,
@@ -17,6 +18,8 @@ from app.services.prompts.email_prompts import (
 
 # Initialize OpenAI
 openai.api_key = settings.openai_api_key
+
+logger = get_logger(__name__)
 
 
 def _select_match_highlights(match_factors: Dict[str, float]) -> List[str]:
@@ -158,6 +161,8 @@ def generate_intro_email(
     prompt = prompt_template.format(**context)
     
     try:
+        logger.info(f"Generating email | Tone: {tone} | Founder: {founder.full_name} | Investor: {investor.full_name}")
+        
         response = openai.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
@@ -167,6 +172,9 @@ def generate_intro_email(
             temperature=0.7,  # Higher temperature for natural variation
             max_tokens=800,
         )
+        
+        log_api_call(logger, "OpenAI", "chat.completions.create",
+                    model="gpt-4o-mini", tone=tone, status="success")
         
         raw_content = response.choices[0].message.content.strip()
 
@@ -183,19 +191,22 @@ def generate_intro_email(
         try:
             email_data = json.loads(json_payload)
         except json.JSONDecodeError:
-            print("Warning: Failed to parse JSON email response. Returning raw content.")
+            logger.warning("Failed to parse JSON email response - using raw content")
             email_data = {
                 "subject": default_subject,
                 "body": raw_content,
             }
 
+        logger.debug(f"Email generated successfully | Tone: {tone} | Length: {len(email_data.get('body', ''))}")
+        
         return {
             "subject": email_data.get("subject", default_subject),
             "body": email_data.get("body", raw_content),
         }
         
     except Exception as e:
-        print(f"Error generating email: {e}")
+        log_error_with_context(logger, e, "Generate email",
+                              founder=founder.full_name, investor=investor.full_name, tone=tone)
         # Fallback email
         return {
             "subject": f"Introduction: {founder.full_name} → {investor.full_name}",
@@ -224,6 +235,8 @@ def generate_multiple_emails(
     if tones is None:
         tones = ["formal", "casual", "enthusiastic"]
 
+    logger.info(f"Generating multiple emails | Tones: {', '.join(tones)} | Founder: {founder.full_name} | Investor: {investor.full_name}")
+    
     email_drafts: Dict[str, str] = {}
 
     for tone in tones:
@@ -238,4 +251,5 @@ def generate_multiple_emails(
         )
         email_drafts[tone] = email["body"]
 
+    logger.info(f"Generated {len(email_drafts)} email variants")
     return email_drafts

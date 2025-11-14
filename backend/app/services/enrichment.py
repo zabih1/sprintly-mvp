@@ -7,15 +7,19 @@ from typing import Dict, List, Optional
 import openai
 
 from app.core.config import settings
+from app.core.logging_config import get_logger, log_api_call, log_error_with_context
 from app.services.prompts import ENRICHMENT_PROMPT, SYSTEM_PROMPT
 
 # Initialize OpenAI client
 openai.api_key = settings.openai_api_key
 
+logger = get_logger(__name__)
+
 
 def generate_embedding(text: str) -> Optional[List[float]]:
     """Generate embedding vector for text using OpenAI."""
     if not settings.openai_api_key:
+        logger.warning("No OpenAI API key configured - skipping embedding generation")
         return None
 
     try:
@@ -24,9 +28,11 @@ def generate_embedding(text: str) -> Optional[List[float]]:
             input=text,
             dimensions=1536,
         )
+        log_api_call(logger, "OpenAI", "embeddings.create",
+                    model="text-embedding-3-large", text_length=len(text), status="success")
         return response.data[0].embedding
     except Exception as e:
-        print(f"Error generating embedding: {e}")
+        log_error_with_context(logger, e, "Generate embedding", text_length=len(text))
         return None
 
 
@@ -37,6 +43,7 @@ def enrich_entity(
 ) -> Dict:
     """Enrich entity using LLM to extract investor/founder attributes."""
     if not settings.openai_api_key:
+        logger.warning("No OpenAI API key configured - skipping enrichment")
         return {
             "role": "other",
             "sector_focus": [],
@@ -56,6 +63,8 @@ def enrich_entity(
             position=position or "Unknown",
         )
 
+        logger.debug(f"Enriching entity | Name: {name} | Company: {company} | Position: {position}")
+        
         response = openai.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
@@ -68,6 +77,10 @@ def enrich_entity(
             temperature=0.3,
             max_tokens=500,
         )
+        
+        log_api_call(logger, "OpenAI", "chat.completions.create",
+                    model="gpt-4o-mini", entity=name, status="success")
+        
         content = response.choices[0].message.content
         # Try to parse JSON from the response
         # Sometimes the model wraps it in markdown code blocks
@@ -77,10 +90,11 @@ def enrich_entity(
             content = content.split("```")[1].split("```")[0].strip()
 
         data = json.loads(content)
+        logger.debug(f"Entity enriched | Name: {name} | Role: {data.get('role', 'unknown')}")
         return data
 
     except Exception as e:
-        print(f"Error enriching entity: {e}")
+        log_error_with_context(logger, e, "Enrich entity", name=name, company=company, position=position)
         return {
             "role": "other",
             "sector_focus": [],

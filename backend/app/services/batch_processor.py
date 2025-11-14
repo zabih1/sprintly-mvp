@@ -1,6 +1,7 @@
 """Optimized batch processing for large CSV imports using parallel processing and batching."""
 from __future__ import annotations
 
+import logging
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
@@ -9,10 +10,13 @@ from typing import BinaryIO, Dict, List, Optional, Tuple
 import pandas as pd
 from sqlalchemy.orm import Session
 
+from app.core.logging_config import get_logger, OperationTimer, log_processing_progress, log_api_call, log_error_with_context
 from app.core.models import Connection, Entity
 from app.services.csv_processor import parse_linkedin_csv
 from app.services.enrichment import create_embedding_text, enrich_entity, generate_embedding
 from app.services.neo4j_client import neo4j_client
+
+logger = get_logger(__name__)
 
 # Global progress tracker
 _progress = {
@@ -75,27 +79,40 @@ def batch_generate_embeddings(texts: List[str], batch_size: int = 2000) -> List[
     from app.core.config import settings
     
     if not settings.openai_api_key:
+        logger.warning("No OpenAI API key configured - skipping embeddings")
         return [None] * len(texts)
     
+    logger.info(f"Starting batch embedding generation | Total texts: {len(texts)} | Batch size: {batch_size}")
     all_embeddings = []
     
     for i in range(0, len(texts), batch_size):
         batch = texts[i:i + batch_size]
+        batch_start = i + 1
+        batch_end = min(i + batch_size, len(texts))
+        
         try:
-            print(f"Generating embeddings batch {i+1}-{min(i+batch_size, len(texts))} of {len(texts)}...")
-            response = openai.embeddings.create(
-                model="text-embedding-3-large",
-                input=batch,
-                dimensions=1536,
-            )
+            log_processing_progress(logger, batch_end, len(texts), "Embedding generation", batch=f"{batch_start}-{batch_end}")
+            
+            with OperationTimer(logger, f"OpenAI embedding batch {batch_start}-{batch_end}", level=logging.DEBUG):
+                response = openai.embeddings.create(
+                    model="text-embedding-3-large",
+                    input=batch,
+                    dimensions=1536,
+                )
+            
             batch_embeddings = [item.embedding for item in response.data]
             all_embeddings.extend(batch_embeddings)
             update_progress(embedded=len(batch))
             
+            log_api_call(logger, "OpenAI", "embeddings.create", 
+                        model="text-embedding-3-large", count=len(batch), status="success")
+            
         except Exception as e:
-            print(f"Error in embedding batch {i}: {e}")
-            # Fallback: try smaller batches or individual calls
-            for text in batch:
+            log_error_with_context(logger, e, "Batch embedding generation", batch=f"{batch_start}-{batch_end}")
+            logger.info(f"Falling back to individual embedding calls for batch {batch_start}-{batch_end}")
+            
+            # Fallback: try individual calls
+            for idx, text in enumerate(batch):
                 try:
                     resp = openai.embeddings.create(
                         model="text-embedding-3-large",
@@ -104,10 +121,12 @@ def batch_generate_embeddings(texts: List[str], batch_size: int = 2000) -> List[
                     )
                     all_embeddings.append(resp.data[0].embedding)
                     update_progress(embedded=1)
-                except:
+                except Exception as fallback_error:
+                    logger.error(f"Failed embedding for text {i+idx}: {text[:50]}... | Error: {str(fallback_error)}")
                     all_embeddings.append(None)
                     update_progress(error=f"Failed embedding for text: {text[:50]}...")
     
+    logger.info(f"Completed embedding generation | Total: {len(all_embeddings)} | Successful: {sum(1 for e in all_embeddings if e is not None)}")
     return all_embeddings
 
 
@@ -127,6 +146,7 @@ def parallel_enrich_entities(
         max_workers: Number of parallel threads (default 10)
         rate_limit_delay: Delay between requests to avoid rate limits
     """
+    logger.info(f"Starting parallel enrichment | Entities: {len(entities_info)} | Workers: {max_workers}")
     results = [None] * len(entities_info)
     
     def enrich_with_index(idx: int, info: Dict) -> Tuple[int, Dict]:
@@ -138,7 +158,7 @@ def parallel_enrich_entities(
             update_progress(enriched=1)
             return idx, enrichment
         except Exception as e:
-            print(f"Error enriching {info['name']}: {e}")
+            logger.error(f"Error enriching entity | Name: {info['name']} | Company: {info.get('company', 'N/A')} | Error: {str(e)}")
             update_progress(error=f"Failed enrichment for {info['name']}: {str(e)[:100]}")
             return idx, {
                 "role": "other",
@@ -152,7 +172,6 @@ def parallel_enrich_entities(
                 "confidence": 0.0,
             }
     
-    print(f"Starting parallel enrichment with {max_workers} workers...")
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         # Submit all tasks
         futures = {
@@ -168,10 +187,11 @@ def parallel_enrich_entities(
                 
                 # Progress update every 100 entities
                 if (idx + 1) % 100 == 0:
-                    print(f"Enriched {_progress['enriched']}/{len(entities_info)} entities...")
+                    log_processing_progress(logger, _progress['enriched'], len(entities_info), "Entity enrichment")
             except Exception as e:
-                print(f"Future failed: {e}")
+                logger.error(f"Future execution failed: {str(e)}", exc_info=True)
     
+    logger.info(f"Completed parallel enrichment | Total: {len(results)} | Success: {sum(1 for r in results if r and r.get('role') != 'other')}")
     return results
 
 
@@ -196,15 +216,16 @@ def process_linkedin_csv_fast(
     - With enrichment: ~5-10 minutes for 3000 rows
     - Without enrichment: ~30-60 seconds for 3000 rows
     """
-    print("=" * 60)
-    print("FAST CSV PROCESSING START")
-    print("=" * 60)
+    logger.info("=" * 80)
+    logger.info("FAST CSV PROCESSING START")
+    logger.info("=" * 80)
     
     # Parse CSV
-    print("Parsing CSV...")
-    df = parse_linkedin_csv(file_content)
+    with OperationTimer(logger, "CSV parsing"):
+        df = parse_linkedin_csv(file_content)
+    
     total_rows = len(df)
-    print(f"Found {total_rows} connections")
+    logger.info(f"CSV parsed successfully | Total connections: {total_rows}")
     
     reset_progress(total_rows)
     
@@ -225,7 +246,7 @@ def process_linkedin_csv_fast(
         return val
     
     # Step 1: Extract basic info and check for duplicates
-    print("\nStep 1: Extracting entity information...")
+    logger.info("Step 1: Extracting entity information...")
     entities_to_process = []
     existing_entities = {}
     
@@ -261,17 +282,16 @@ def process_linkedin_csv_fast(
                 "row": row,
             })
     
-    print(f"Found {len(existing_entities)} existing entities")
-    print(f"Need to process {len(entities_to_process)} new entities")
+    logger.info(f"Entity extraction complete | Existing: {len(existing_entities)} | New: {len(entities_to_process)}")
     
     if len(entities_to_process) == 0:
-        print("No new entities to process!")
+        logger.info("No new entities to process - all entities already exist")
         _progress["status"] = "completed"
         return stats
     
     # Step 2: Parallel enrichment (if not skipped)
     if skip_enrichment:
-        print("\nStep 2: SKIPPING enrichment (fast mode)")
+        logger.info("Step 2: SKIPPING enrichment (fast mode enabled)")
         enrichments = [{
             "role": "other",
             "sector_focus": [],
@@ -284,47 +304,51 @@ def process_linkedin_csv_fast(
             "confidence": 0.0,
         }] * len(entities_to_process)
     else:
-        print(f"\nStep 2: Parallel enrichment with {max_workers} workers...")
-        entities_info = [
-            {
-                "name": e["full_name"],
-                "company": e["company"],
-                "position": e["position"],
-            }
-            for e in entities_to_process
-        ]
-        enrichments = parallel_enrich_entities(entities_info, max_workers=max_workers)
+        logger.info(f"Step 2: Starting enrichment | Workers: {max_workers}")
+        with OperationTimer(logger, "Entity enrichment"):
+            entities_info = [
+                {
+                    "name": e["full_name"],
+                    "company": e["company"],
+                    "position": e["position"],
+                }
+                for e in entities_to_process
+            ]
+            enrichments = parallel_enrich_entities(entities_info, max_workers=max_workers)
     
     # Step 3: Create embedding texts and batch generate embeddings
     if skip_enrichment:
-        print("\nStep 3: SKIPPING embeddings (fast mode)")
+        logger.info("Step 3: SKIPPING embeddings (fast mode enabled)")
         embeddings = [None] * len(entities_to_process)
     else:
-        print("\nStep 3: Batch embedding generation...")
-        embedding_texts = []
-        for entity, enrichment in zip(entities_to_process, enrichments):
-            entity_dict = {
-                "full_name": entity["full_name"],
-                "company": entity["company"],
-                "position": entity["position"],
-                "role": enrichment.get("role"),
-                "sector_focus": enrichment.get("sector_focus", []),
-                "stage_focus": enrichment.get("stage_focus", []),
-                "investment_thesis": enrichment.get("investment_thesis"),
-                "location": enrichment.get("location"),
-            }
-            embedding_texts.append(create_embedding_text(entity_dict))
+        logger.info("Step 3: Preparing and generating embeddings...")
+        with OperationTimer(logger, "Embedding text preparation"):
+            embedding_texts = []
+            for entity, enrichment in zip(entities_to_process, enrichments):
+                entity_dict = {
+                    "full_name": entity["full_name"],
+                    "company": entity["company"],
+                    "position": entity["position"],
+                    "role": enrichment.get("role"),
+                    "sector_focus": enrichment.get("sector_focus", []),
+                    "stage_focus": enrichment.get("stage_focus", []),
+                    "investment_thesis": enrichment.get("investment_thesis"),
+                    "location": enrichment.get("location"),
+                }
+                embedding_texts.append(create_embedding_text(entity_dict))
         
-        embeddings = batch_generate_embeddings(embedding_texts)
+        with OperationTimer(logger, "Batch embedding generation"):
+            embeddings = batch_generate_embeddings(embedding_texts)
     
     # Step 4: Batch create entities and connections
-    print("\nStep 4: Creating entities and connections...")
+    logger.info("Step 4: Creating entities and connections in database...")
     new_entities = []
     connections_to_create = []
     neo4j_entities = []
     neo4j_connections = []
     
     BATCH_SIZE = 100
+    logger.debug(f"Database batch size: {BATCH_SIZE}")
     
     for entity_data, enrichment, embedding in zip(entities_to_process, enrichments, embeddings):
         # Parse connection date
@@ -406,7 +430,7 @@ def process_linkedin_csv_fast(
             db.commit()
             stats["created"] += len(new_entities)
             update_progress(processed=len(new_entities))
-            print(f"Committed batch: {stats['created']}/{len(entities_to_process)} entities")
+            log_processing_progress(logger, stats['created'], len(entities_to_process), "Database commit")
             new_entities = []
     
     # Final batch commit
@@ -440,50 +464,60 @@ def process_linkedin_csv_fast(
         db.commit()
         stats["created"] += len(new_entities)
         update_progress(processed=len(new_entities))
-        print(f"Final commit: {stats['created']} total entities created")
+        logger.info(f"Final commit complete | Total entities created: {stats['created']}")
     
     # Step 5: Batch create Neo4j nodes and relationships
-    print("\nStep 5: Creating Neo4j graph...")
+    logger.info(f"Step 5: Creating Neo4j graph | Nodes: {len(neo4j_entities)} | Relationships: {len(neo4j_connections)}")
     try:
-        for neo4j_entity in neo4j_entities:
-            neo4j_client.create_entity_node(
-                entity_id=neo4j_entity["entity_id"],
-                name=neo4j_entity["name"],
-                role=neo4j_entity["role"],
-                company=neo4j_entity["company"],
-                properties={
-                    "email": neo4j_entity["email"],
-                    "linkedin_url": neo4j_entity["linkedin_url"],
-                    "position": neo4j_entity["position"],
-                },
-            )
+        with OperationTimer(logger, "Neo4j node creation"):
+            for idx, neo4j_entity in enumerate(neo4j_entities):
+                neo4j_client.create_entity_node(
+                    entity_id=neo4j_entity["entity_id"],
+                    name=neo4j_entity["name"],
+                    role=neo4j_entity["role"],
+                    company=neo4j_entity["company"],
+                    properties={
+                        "email": neo4j_entity["email"],
+                        "linkedin_url": neo4j_entity["linkedin_url"],
+                        "position": neo4j_entity["position"],
+                    },
+                )
+                if (idx + 1) % 500 == 0:
+                    log_processing_progress(logger, idx + 1, len(neo4j_entities), "Neo4j nodes")
         
-        for neo4j_conn in neo4j_connections:
-            neo4j_client.create_connection(
-                source_id=neo4j_conn["source_id"],
-                target_id=neo4j_conn["target_id"],
-                relationship_type="CONNECTED_TO",
-                strength=1.0,
-            )
+        with OperationTimer(logger, "Neo4j relationship creation"):
+            for idx, neo4j_conn in enumerate(neo4j_connections):
+                neo4j_client.create_connection(
+                    source_id=neo4j_conn["source_id"],
+                    target_id=neo4j_conn["target_id"],
+                    relationship_type="CONNECTED_TO",
+                    strength=1.0,
+                )
+                if (idx + 1) % 500 == 0:
+                    log_processing_progress(logger, idx + 1, len(neo4j_connections), "Neo4j relationships")
         
-        print(f"Created {len(neo4j_entities)} nodes and {len(neo4j_connections)} relationships in Neo4j")
+        logger.info(f"✓ Neo4j graph created | Nodes: {len(neo4j_entities)} | Relationships: {len(neo4j_connections)}")
     except Exception as e:
-        print(f"Warning: Neo4j operations failed: {e}")
+        log_error_with_context(logger, e, "Neo4j graph creation", 
+                              nodes=len(neo4j_entities), relationships=len(neo4j_connections))
         update_progress(error=f"Neo4j error: {str(e)}")
     
     _progress["status"] = "completed"
     
-    print("\n" + "=" * 60)
-    print("PROCESSING COMPLETE")
-    print(f"Total: {stats['total']}")
-    print(f"Created: {stats['created']}")
-    print(f"Skipped: {stats['skipped']}")
-    print(f"Errors: {len(_progress['errors'])}")
+    logger.info("=" * 80)
+    logger.info("PROCESSING COMPLETE")
+    logger.info(f"Total connections: {stats['total']}")
+    logger.info(f"Created: {stats['created']}")
+    logger.info(f"Skipped: {stats['skipped']}")
+    logger.info(f"Errors: {len(_progress['errors'])}")
+    
     if _progress["start_time"]:
         elapsed = time.time() - _progress["start_time"]
-        print(f"Time: {elapsed:.1f} seconds")
-        print(f"Rate: {stats['created']/elapsed:.1f} entities/second")
-    print("=" * 60)
+        rate = stats['created'] / elapsed if elapsed > 0 else 0
+        logger.info(f"Processing time: {elapsed:.1f} seconds")
+        logger.info(f"Processing rate: {rate:.1f} entities/second")
+    
+    logger.info("=" * 80)
     
     return stats
 

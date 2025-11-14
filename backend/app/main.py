@@ -1,6 +1,7 @@
 """Main FastAPI application with all endpoints."""
 from __future__ import annotations
 
+import logging
 from typing import Optional
 
 from fastapi import Depends, FastAPI, File, HTTPException, Query, UploadFile
@@ -9,7 +10,9 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 # Import from core (database, models, config)
+from app.core.config import settings
 from app.core.database import get_db, init_db
+from app.core.logging_config import setup_logging, get_logger
 from app.core.models import Entity
 
 # Import from services (business logic)
@@ -37,6 +40,10 @@ from app.api.schemas.search import MatchResult, SearchFilters, SearchResponse
 from app.api.schemas.stats import NetworkStatsResponse
 from app.api.schemas.upload import UploadResponse, UploadStats
 
+# Initialize logging
+setup_logging(log_level="INFO", enable_file_logging=True)
+logger = get_logger(__name__)
+
 # Initialize FastAPI app
 app = FastAPI(
     title="Sprintly Investor Match MVP",
@@ -53,21 +60,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+logger.info("FastAPI application initialized")
+
 
 @app.on_event("startup")
 async def startup_event():
     """Initialize database on startup."""
     try:
         init_db()
-        print("✓ Database initialized successfully")
+        logger.info("✓ Database initialized successfully")
     except Exception as e:
-        print(f"✗ Database initialization failed: {e}")
+        logger.error(f"✗ Database initialization failed: {e}", exc_info=True)
 
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Clean up resources on shutdown."""
+    logger.info("Shutting down application...")
     neo4j_client.close()
+    logger.info("Application shutdown complete")
 
 
 @app.get("/health")
@@ -101,7 +112,10 @@ def clear_all_data(
         connection_count = db.query(Connection).count()
         match_count = db.query(MatchHistory).count()
         
-        print(f"Deleting {entity_count} entities, {connection_count} connections, {match_count} matches...")
+        logger.warning(
+            f"Clearing all data: {entity_count} entities, "
+            f"{connection_count} connections, {match_count} matches"
+        )
         
         # Delete from PostgreSQL (order matters due to foreign keys)
         db.query(MatchHistory).delete()
@@ -109,16 +123,16 @@ def clear_all_data(
         db.query(Entity).delete()
         db.commit()
         
-        print("✓ PostgreSQL data deleted")
+        logger.info("✓ PostgreSQL data deleted")
         
         # Clear Neo4j graph
         try:
             neo4j_client.driver.execute_query(
                 "MATCH (n) DETACH DELETE n"
             )
-            print("✓ Neo4j graph cleared")
+            logger.info("✓ Neo4j graph cleared")
         except Exception as e:
-            print(f"Warning: Could not clear Neo4j: {e}")
+            logger.warning(f"Could not clear Neo4j: {e}")
         
         return {
             "success": True,
@@ -154,6 +168,7 @@ async def upload_connections_fast(
     - Parallel enrichment with ThreadPoolExecutor - 10x faster
     - Batch database operations - 5x faster
     - Progress tracking at /upload-progress
+    - Supports files up to 2GB
     
     Performance for 3000 connections:
     - With enrichment (skip_enrichment=false): ~5-10 minutes
@@ -167,10 +182,29 @@ async def upload_connections_fast(
     - First Name, Last Name, URL, Email Address, Company, Position, Connected On
     """
     if not file.filename.endswith('.csv'):
+        logger.warning(f"Invalid file type upload attempt: {file.filename}")
         raise HTTPException(status_code=400, detail="File must be a CSV")
 
+    logger.info(f"Starting CSV upload: {file.filename} | skip_enrichment={skip_enrichment} | max_workers={max_workers}")
+    
     try:
-        content = await file.read()
+        # Check file size before reading
+        file_size = 0
+        content_chunks = []
+        while chunk := await file.read(8192):  # Read in 8KB chunks
+            content_chunks.append(chunk)
+            file_size += len(chunk)
+            if file_size > settings.max_upload_size:
+                max_size_mb = settings.max_upload_size / (1024 * 1024)
+                logger.error(f"File too large: {file.filename} | Size: {file_size / (1024*1024):.1f}MB")
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"File too large. Maximum size is {max_size_mb:.0f}MB"
+                )
+        
+        content = b''.join(content_chunks)
+        file_size_mb = file_size / (1024 * 1024)
+        logger.info(f"File loaded: {file.filename} | Size: {file_size_mb:.2f}MB")
         stats = process_linkedin_csv_fast(
             content, 
             db, 
@@ -183,13 +217,22 @@ async def upload_connections_fast(
         if skip_enrichment:
             message += " (enrichment skipped - use /enrich-pending to add AI data later)"
         
+        logger.info(
+            f"Upload complete: {file.filename} | "
+            f"Created: {stats.get('created', 0)} | "
+            f"Skipped: {stats.get('skipped', 0)} | "
+            f"Total: {stats.get('total', 0)}"
+        )
+        
         return UploadResponse(
             message=message,
             stats=UploadStats(**stats)
         )
     except ValueError as e:
+        logger.error(f"Validation error in upload: {file.filename} | Error: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        logger.error(f"Processing failed: {file.filename} | Error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Fast processing failed: {str(e)}")
 
 

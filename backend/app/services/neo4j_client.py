@@ -6,6 +6,9 @@ from typing import Dict, List, Optional
 from neo4j import GraphDatabase, Driver
 
 from app.core.config import settings
+from app.core.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class Neo4jClient:
@@ -19,20 +22,24 @@ class Neo4jClient:
     def _connect(self) -> None:
         """Establish connection to Neo4j."""
         try:
+            logger.info(f"Connecting to Neo4j | URI: {settings.neo4j_uri}")
             self.driver = GraphDatabase.driver(
                 settings.neo4j_uri,
                 auth=(settings.neo4j_user, settings.neo4j_password),
             )
             # Test connection
             self.driver.verify_connectivity()
+            logger.info("✓ Neo4j connection established")
         except Exception as e:
-            print(f"Failed to connect to Neo4j: {e}")
+            logger.error(f"Failed to connect to Neo4j: {e}", exc_info=True)
             self.driver = None
 
     def close(self) -> None:
         """Close Neo4j driver."""
         if self.driver:
+            logger.info("Closing Neo4j connection")
             self.driver.close()
+            logger.debug("Neo4j connection closed")
 
     def create_entity_node(
         self,
@@ -44,6 +51,7 @@ class Neo4jClient:
     ) -> None:
         """Create or update an entity node in the graph."""
         if not self.driver:
+            logger.warning("Neo4j driver not available - skipping node creation")
             return
 
         props = properties or {}
@@ -54,17 +62,21 @@ class Neo4jClient:
             "company": company or "",
         })
 
-        with self.driver.session(database=settings.neo4j_database) as session:
-            session.run(
-                """
-                MERGE (e:Entity {entity_id: $entity_id})
-                SET e.name = $name,
-                    e.role = $role,
-                    e.company = $company,
-                    e.updated_at = datetime()
-                """,
-                props,
-            )
+        try:
+            with self.driver.session(database=settings.neo4j_database) as session:
+                session.run(
+                    """
+                    MERGE (e:Entity {entity_id: $entity_id})
+                    SET e.name = $name,
+                        e.role = $role,
+                        e.company = $company,
+                        e.updated_at = datetime()
+                    """,
+                    props,
+                )
+            logger.debug(f"Created/updated Neo4j node | ID: {entity_id} | Name: {name}")
+        except Exception as e:
+            logger.error(f"Failed to create Neo4j node | ID: {entity_id} | Error: {str(e)}")
 
     def create_connection(
         self,
@@ -75,23 +87,28 @@ class Neo4jClient:
     ) -> None:
         """Create a relationship between two entities."""
         if not self.driver:
+            logger.warning("Neo4j driver not available - skipping relationship creation")
             return
 
-        with self.driver.session(database=settings.neo4j_database) as session:
-            session.run(
-                f"""
-                MATCH (a:Entity {{entity_id: $source_id}})
-                MATCH (b:Entity {{entity_id: $target_id}})
-                MERGE (a)-[r:{relationship_type}]->(b)
-                SET r.strength = $strength,
-                    r.updated_at = datetime()
-                """,
-                {
-                    "source_id": source_id,
-                    "target_id": target_id,
-                    "strength": strength,
-                },
-            )
+        try:
+            with self.driver.session(database=settings.neo4j_database) as session:
+                session.run(
+                    f"""
+                    MATCH (a:Entity {{entity_id: $source_id}})
+                    MATCH (b:Entity {{entity_id: $target_id}})
+                    MERGE (a)-[r:{relationship_type}]->(b)
+                    SET r.strength = $strength,
+                        r.updated_at = datetime()
+                    """,
+                    {
+                        "source_id": source_id,
+                        "target_id": target_id,
+                        "strength": strength,
+                    },
+                )
+            logger.debug(f"Created Neo4j relationship | {source_id} -> {target_id} | Type: {relationship_type}")
+        except Exception as e:
+            logger.error(f"Failed to create Neo4j relationship | {source_id} -> {target_id} | Error: {str(e)}")
 
     def find_intro_path(
         self,

@@ -53,8 +53,8 @@ class Settings(BaseSettings):
     cors_origins: str = "*"
 
     # Upload settings
-    max_upload_size: int = 200 * 1024 * 1024  # 200MB
-
+    max_upload_size: int = 2 * 1024 * 1024 * 1024  # 2GB
+    
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
