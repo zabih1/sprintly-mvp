@@ -4,7 +4,51 @@ Founder-investor matching platform powered by AI and graph database.
 
 ## Project Structure
 
-
+```
+sprintly-mvp/
+├── README.md
+├── requirements.txt
+└── backend/
+    ├── app/
+    │   ├── __init__.py
+    │   ├── main.py
+    │   ├── api/
+    │   │   ├── __init__.py
+    │   │   └── schemas/
+    │   │       ├── __init__.py
+    │   │       ├── common.py
+    │   │       ├── email.py
+    │   │       ├── entity.py
+    │   │       ├── intro.py
+    │   │       ├── investor.py
+    │   │       ├── search.py
+    │   │       ├── stats.py
+    │   │       └── upload.py
+    │   ├── core/
+    │   │   ├── __init__.py
+    │   │   ├── config.py
+    │   │   ├── database.py
+    │   │   └── models.py
+    │   └── services/
+    │       ├── __init__.py
+    │       ├── batch_processor.py
+    │       ├── csv_processor.py
+    │       ├── email_generator.py
+    │       ├── enrichment.py
+    │       ├── graph_service.py
+    │       ├── match_scorer.py
+    │       ├── neo4j_client.py
+    │       ├── vector_search.py
+    │       └── prompts/
+    │           ├── __init__.py
+    │           ├── email_prompts.py
+    │           └── enrichment_prompts.py
+    ├── notebooks/
+    │   ├── clear_database.ipynb
+    │   └── sample_connections.csv
+    ├── test_matching_engine.py
+    └── validate_csv.py
+```
 
 ## Setup
 
@@ -54,7 +98,6 @@ Founder-investor matching platform powered by AI and graph database.
 - **Backend**: FastAPI, Python
 - **Database**: Neo4j (graph), Vector search
 - **AI**: OpenAI (embeddings, classification)
-- **Frontend**: HTML, JavaScript
 
 ## License
 
